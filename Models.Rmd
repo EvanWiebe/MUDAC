@@ -147,17 +147,21 @@ lasso_coef<- lasso_coef|>
 gg <- ggplot(lasso_coef, aes(x = reorder(term, estimate), y = estimate)) +
   geom_bar(stat = "identity", fill = "skyblue", color = "black") +
   coord_flip() +
-  labs(x = "Predictors", y = "Coefficient", title = "LASSO Variable Importance") +
+  labs(x = "Predictors", y = "Coefficient", title = "LASSO Coefficient Values") +
   theme_minimal()
 
 # Print the plot
 print(gg)
 
 
+stuff <- tidy(lasso_final_fit)
+
 library(vip)
 (gg1 <- extract_fit_parsnip(lasso_final_fit) %>%
-  vip()+
-  ylim(0,10))
+  vip() +
+  # Add the theming code
+  theme_bw() +
+  ylim(0, 10))
 
 ```
 
@@ -200,10 +204,26 @@ augment(lasso_final_fit, new_data = Big_data_test_tbl_filtered) %>%
 
 library(vip)
 (gg1 <- extract_fit_parsnip(lasso_final_fit) %>%
-  vip()+
-  ylim(0,10))
+  vip() +
+  # Add the theming code
+  theme_bw() +
+  ylim(0, 10))
 
-tidy(lasso_final_fit)
+stuff <- tidy(lasso_final_fit)
+
+
+
+lasso_coef<- lasso_coef|>
+  filter(term != "(Intercept)")
+# Visualize variable importance
+gg <- ggplot(lasso_coef, aes(x = reorder(term, estimate), y = estimate)) +
+  geom_bar(stat = "identity", fill = "skyblue", color = "black") +
+  coord_flip() +
+  labs(x = "Predictors", y = "Coefficient", title = "LASSO Coefficient Values") +
+  theme_minimal()
+
+# Print the plot
+print(gg)
 
 ```
 
@@ -246,8 +266,10 @@ augment(lasso_final_fit, new_data = Big_data_test_tbl_filtered) %>%
 
 library(vip)
 (gg1 <- extract_fit_parsnip(lasso_final_fit) %>%
-  vip()+
-  ylim(0,10))
+  vip() +
+  # Add the theming code
+  theme_bw() +
+  ylim(0, 10))
 
 ```
 
