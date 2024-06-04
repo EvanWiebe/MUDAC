@@ -1,0 +1,117 @@
+---
+title: "Untitled"
+author: "Sam Song"
+date: "2024-04-07"
+output: pdf_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+ethanol_sf <- st_read("Mudac2024/Data/shp_util_ethanol_plant_locations/ethanol_plants.shp")
+data_big33 <- read_csv("Mudac2024/Additional Data/data_big33.csv")
+```
+
+# This works 
+```{r}
+fertilizer <- read_csv("Mudac2024/Data/FertilizerConsumption.csv")
+fertilizer <- fertilizer %>% mutate(County = tolower(County),
+                                    organic_use = .46 * `Urea..46.0.0.` + .82 * `Ammonia..82.0.0.`,
+                                    fabricated_use = .60 * `Potash..0.0.60.` + .11 * .52 * `Monammonium.Phosphate..MAP...11.52.0.` + .18 * .46 * `Diammonium.Phosphate..DAP...18.46.0.`) %>%
+  mutate(aggregate_demand = organic_use + fabricated_use) %>%
+  mutate(map1 = fabricated_use / aggregate_demand)
+
+fertilizer_sf <- inner_join(fertilizer, mn_counties, by = c("County" = "CTY_NAME"))
+
+fertilizer_sf <- st_as_sf(fertilizer_sf)
+write.csv(fertilizer_sf, "~/Documents/MUDAC/data/fertilizer_sf.csv")
+
+fertilizer_sf %>%
+  ggplot() +
+  geom_sf(aes(fill = aggregate_demand)) +
+  labs(fill = "AD",
+       title = "AD for Fertilizer") +
+  scale_fill_fermenter(palette = "Oranges", direction = 1) +
+  theme_bw()
+
+fertilizer_sf %>%
+  ggplot() +
+  geom_sf(aes(fill = map1)) +
+  labs(fill = "AD_Syn/AD",
+       title = "AD_Syn/AD for Fertilizer") +
+  scale_fill_fermenter(palette = "Oranges", direction = 1) +
+  theme_bw() 
+```
+
+# But this doesn't work
+
+
+```{r}
+
+big_data3 <- data_big33
+
+big_data <- big_data3 %>%
+  select(`Urea..46.0.0.`,
+         `Potash..0.0.60.`,
+         `Monammonium.Phosphate..MAP...11.52.0.`,
+         `Ammonia..82.0.0.`,
+         `Diammonium.Phosphate..DAP...18.46.0.`,
+         Hogs_total_N,
+         feed_cows_total_N,
+         Dairy_cows_total_N,
+         Beef_cows_total_N,
+         Year,
+         County) %>%
+  filter(Year == 2020)  %>%
+  mutate(urea_nitrogen_tons = .46 * `Urea..46.0.0.`,
+         potash_nitrogen_tons = 0 * `Potash..0.0.60.`,
+         monammaonium_nitrogen_tons = .11 * `Monammonium.Phosphate..MAP...11.52.0.`,
+         ammonia_nitrogen_tons = 0.82 * `Ammonia..82.0.0.`,
+         diammonium_nitrogen_tons = .18 * `Diammonium.Phosphate..DAP...18.46.0.`) %>%
+  mutate(Nitro_bio = Hogs_total_N + feed_cows_total_N + Dairy_cows_total_N + Beef_cows_total_N,
+         Nitro_synth = diammonium_nitrogen_tons + monammaonium_nitrogen_tons,
+         Nitro_organic = urea_nitrogen_tons + ammonia_nitrogen_tons) %>%
+  mutate(AD = Nitro_bio + Nitro_organic + Nitro_synth) %>%
+  mutate(map1 = (Nitro_synth + Nitro_bio) / AD,
+         map2 = (Nitro_synth) / AD)
+
+big_data_sf <- big_data %>%
+  select(County, AD, map1, map2)
+
+mn_counties <-  counties_sf %>%
+  mutate(CTY_NAME = tolower(CTY_NAME))
+
+big_data_sf <- inner_join(big_data_sf, mn_counties, by = c("County" = "CTY_NAME"))
+big_data_sf <- st_as_sf(big_data_sf) 
+
+big_data_sf %>%
+  ggplot() +
+  geom_sf(aes(fill = map1)) +
+  labs(fill = "AD_Syn/AD",
+       title = "AD_Syn/AD for Fertilizer") +
+  scale_fill_fermenter(palette = "Oranges", direction = 1) +
+  theme_bw()
+
+big_data_sf %>%
+  ggplot() +
+  geom_sf(aes(fill = map2)) +
+  labs(fill = "AD_Syn/AD",
+       title = "AD_Syn/AD for Fertilizer",
+       caption = "Ethanol Plants in Blue") +
+  scale_fill_fermenter(palette = "Oranges", direction = 1) +
+  theme_bw() +
+  geom_sf(data = ethanol_sf, color = "blue") 
+
+big_data_sf %>%
+  ggplot() +
+  geom_sf(aes(fill = AD)) +
+  labs(fill = "AD",
+       title = "AD for Fertilizer") +
+  scale_fill_fermenter(palette = "Oranges", direction = 1) +
+  theme_bw()+
+  geom_sf(data = ethanol_sf, color = "blue")
+ ```
+
+
