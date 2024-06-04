@@ -1,0 +1,321 @@
+---
+title: "Fuck it we ball"
+output: pdf_document
+date: "2024-04-06"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(ggplot2)
+library(lpSolve)
+```
+
+
+```{r setup, include=FALSE}
+animals <- read.csv('~/Desktop/MUDAC/Animals.csv')
+
+#colnames(animals) <- gsub("\\.of\\.", " ", colnames(animals))
+```
+
+
+```{r setup, include=FALSE}
+colnames(animals) <- gsub("\\.[^.]*\\.", " ", colnames(animals))
+
+# Assuming your data is stored in a dataframe named 'df'
+#colnames(df) <- gsub("(?<!^)\\.[^.]*\\.", " ", colnames(df))
+
+
+
+```
+
+
+```{r setup, include=FALSE}
+manuar_pred <-read.csv('~/Desktop/MUDAC/FertilizerConsumption.csv') 
+
+
+# Assuming your data is stored in a dataframe named 'df'
+colnames(manuar_pred) <- gsub("\\.[^.]*\\.", " ", colnames(manuar_pred))
+
+
+```
+
+
+```{r}
+merged_data <- manuar_pred %>% 
+  full_join(animals, by = c( "State","County", "ANSI", "Ag.District", "Ag Code","Year"))
+
+
+```
+
+
+```{r}
+colnames(animals)[2] <- "County"  # Replace the first column name
+colnames(animals)[6] <- "Year"  # Replace the first column name
+
+colnames(animals)[3] <- "ANSI"  # Replace the first column name
+
+
+```
+
+
+```{r}
+animals2 <- animals
+
+str(animals2)
+```
+
+
+```{r}
+# Loop through each row
+for (i in 1:nrow(animals2)) {
+  # Check if value in col1 is NA
+  if (is.na(animals2$'CATTLE INCL  INVENTORY'[i])) {
+    # Replace NA with -0
+    animals2$'CATTLE INCL  INVENTORY'[i] <- 0
+  }
+    if (is.na(animals2$'CATTLE ON  INVENTORY'[i])) {
+    # Replace NA with -0
+    animals2$'CATTLE ON  INVENTORY'[i] <- 0
+    }
+    if (is.na(animals2$'HOGS .INVENTORY'[i])) {
+    # Replace NA with -0
+    animals2$'HOGS .INVENTORY'[i] <- 0
+    }
+    if (is.na(animals2$'TURKEYS .INVENTORY'[i])) {
+    # Replace NA with -0
+    animals2$'TURKEYS .INVENTORY'[i] <- 0
+    }
+}
+```
+
+
+```{r}
+
+
+animals2 <- animals2|>
+  mutate(Cows_num =  as.integer(animals2$'CATTLE INCL  INVENTORY'),Hogs_num =  as.integer(animals2$'HOGS .INVENTORY'), cattle_on_feed =as.integer(animals2$'CATTLE ON  INVENTORY'), turkey_num = as.integer(animals2$'TURKEYS .INVENTORY'))
+
+
+```
+
+
+```{r}
+#animals2|>
+  #group_by(Year, County) |>
+ # summarize(sum_cows = sum('CATTLE INCL  INVENTORY'), sum_Cattle_farm = sum('CATTLE ON  INVENTORY'), sum_Hogs = sum('HOGS .INVENTORY'), sum_Turkeys = sum('TURKEYS .INVENTORY'))
+
+
+poopneedd<- animals2|>
+  group_by(Year, County, Ag.District) |>
+  summarize(sum_cows = sum(Cows_num), sum_hogs = sum(Hogs_num), sum_feed_cattle = sum(cattle_on_feed), sum_Turkeys = sum(turkey_num))
+```
+
+
+```{r}
+poopneedd
+```
+
+
+```{r}
+data_big2_cow_shit <- read.csv("~/Desktop/data_big2.csv")
+```
+```{r}
+data_big2_cow_shit
+```
+```{r}
+data_big4<- 
+```
+
+
+```{r}
+
+data_big2_new<- data_big2_cow_shit|>
+  mutate( 
+          Dairy_cows_total_poop_lb = `CATTLE..COWS..MILK...INVENTORY` * 155 *360, 
+          Dairy_cows_total_N = `CATTLE..COWS..MILK...INVENTORY` *1.01*360, 
+          Dairy_cows_total_P = `CATTLE..COWS..MILK...INVENTORY` *0.52*360,  
+          Dairy_cows_total_K = `CATTLE..COWS..MILK...INVENTORY` *0.57*360,
+                   
+         Beef_cows_total_poop_lb = `CATTLE..COWS..BEEF...INVENTORY`* 54 *360,  
+          Beef_cows_total_N = `CATTLE..COWS..BEEF...INVENTORY` *0.4*360, 
+          Beef_cows_total_P = `CATTLE..COWS..BEEF...INVENTORY` *0.4*360,  
+          Beef_cows_total_K = `CATTLE..COWS..BEEF...INVENTORY` *0.4*360,
+         
+  
+         feed_cows_total_poop_lb = Feed_cows * 54 *360, 
+         feed_cows_total_N = Feed_cows *0.4*360, 
+         feed_cows_total_P = Feed_cows *0.4*360,  
+         feed_cows_total_K = Feed_cows *0.4*360,
+         
+         Hogs_total_poop_lb = Hogs * 14.8 *360, 
+         Hogs_total_N = Hogs *0.17*360, 
+         Hogs_total_P = Hogs *0.006*360,  
+         Hogs_total_K = Hogs *0.09*360,
+
+         )
+
+
+  
+```
+
+```{r}
+data_big2_new
+
+```
+
+```{r}
+poopneedd
+data_big2_new|>  
+  write.csv(file = "data_big2_new.csv", row.names = FALSE)
+```
+
+```{r}
+merged_data <- manuar_pred %>% 
+  inner_join(poopneedd, by = c( "County", "Ag.District","Year"))
+```
+
+
+
+
+```{r}
+ansel_map <- read.csv('~/Desktop/MUDAC/fertilizer_sf.csv')
+```
+
+```{r}
+merged_data|>  
+  write.csv(file = "merged_data.csv", row.names = FALSE)
+```
+
+
+```{r}
+insert_set<- merged_data|>
+  group_by(Year)|>
+  summarize(total_poop_Dairy_cows = sum(Dairy_cows_total_poop_lb),
+            total_Nitogen_Dairy_cows = sum(Dairy_cows_total_N), 
+            total_poop_feed_cows = sum(feed_cows_total_poop_lb),
+            total_Nitogen_Feed_cows = sum(feed_cows_total_N), 
+            total_poop_Hogs = sum(Hogs_total_poop_lb), 
+            total_Nitogen_Hogs = sum(Hogs_total_N), 
+            total_poop_Turkeys = sum(Turkey_total_poop_lb), 
+            total_Nitogen_Turkeys = sum(Turkey_total_N), 
+            total_Ammonia = sum(`Ammonia 82 0.`))
+```
+
+```{r}
+insert_set
+```
+
+
+```{r}
+merged_data2 <- merged_data %>% 
+  inner_join(insert_set, by = c( "Year"))
+```
+
+
+```{r}
+merged_data2
+```
+
+```{r}
+
+
+merged_data2|>
+  select(total_Ammonia, 'Ammonia 82 0.')
+
+```
+```{r}
+
+ggplot(merged_data2, aes(x = Year, y = (total_poop_Dairy_cows+total_poop_feed_cows+total_poop_Hogs+total_poop_Turkeys), fill = County)) +
+  geom_bar(stat = "identity") +  # Create bars
+  labs(title = "Amount Produced per County by Year",
+       x = "Year",
+       y = "Amount Produced") +
+  theme_classic()  # Optional: adjust plot aesthetics
+```
+
+
+
+```{r}
+merged_data3<- merged_data2|>
+  mutate(Dairy_Cow_Percentage_of_Total_Poop = 0,
+         Dairy_Cow_Percentage_of_Total_Nitrogen = 0,
+         Feed_Cow_Percentage_of_Total_Poop = 0,
+         Dairy_Cow_Percentage_of_Total_Nitrogen = 0,
+         Hog_Percentage_of_Total_Poop= 0, 
+         Hog_Percentage_of_Total_Nitrogen = 0,
+         Turkey_Percentage_of_Total_Poop= 0, 
+         Turkey_Percentage_of_Total_Nitrogen = 0,
+         Percentage_of_Ammonia = 0,
+         total_produced_nitrogen_percentage = 0)
+
+
+
+insert_set2<- merged_data2|>
+  mutate(Dairy_Cow_Percentage_of_Total_Poop= Dairy_cows_total_poop_lb/total_poop_Dairy_cows, 
+         Dairy_Cow_Percentage_of_Total_Nitrogen = Dairy_cows_total_N/total_Nitogen_Dairy_cows,
+         Feed_Cow_Percentage_of_Total_Poop= feed_cows_total_poop_lb/total_poop_feed_cows, 
+         Dairy_Cow_Percentage_of_Total_Nitrogen = feed_cows_total_N/total_Nitogen_Feed_cows,
+         Hog_Percentage_of_Total_Poop= Hogs_total_poop_lb/total_poop_Hogs, 
+         Hog_Percentage_of_Total_Nitrogen = Hogs_total_N/total_Nitogen_Hogs,
+         Turkey_Percentage_of_Total_Poop= Turkey_total_poop_lb/total_poop_Turkeys, 
+         Turkey_Percentage_of_Total_Nitrogen = Turkey_total_N/total_Nitogen_Turkeys,
+         Percentage_of_Ammonia = `Ammonia 82 0.`/total_Ammonia,
+         total_produced_nitrogen_percentage = (Dairy_cows_total_N+feed_cows_total_N+Hogs_total_N+Turkey_total_N)/(total_Nitogen_Dairy_cows+total_Nitogen_Feed_cows+total_Nitogen_Hogs+total_Nitogen_Turkeys))
+```
+
+```{r}
+merged_data3
+```
+
+
+```{r}
+for (i in 1:nrow(merged_data3)) {
+  merged_data3$Dairy_Cow_Percentage_of_Total_Poop[i] = merged_data3$Dairy_cows_total_poop_lb[i]/merged_data3$total_poop_Dairy_cows[i] 
+        
+  merged_data3$Dairy_Cow_Percentage_of_Total_Nitrogen[i] = merged_data3$Dairy_cows_total_N[i]/merged_data3$total_Nitogen_Dairy_cows[i]
+  merged_data3$Feed_Cow_Percentage_of_Total_Poop[i] = merged_data3$feed_cows_total_poop_lb[i]/merged_data3$total_poop_feed_cows[i] 
+  merged_data3$Dairy_Cow_Percentage_of_Total_Nitrogen[i] = merged_data3$feed_cows_total_N[i]/merged_data3$total_Nitogen_Feed_cows[i]
+         merged_data3$Hog_Percentage_of_Total_Poop[i] = merged_data3$Hogs_total_poop_lb[i]/merged_data3$total_poop_Hogs[i] 
+         merged_data3$Hog_Percentage_of_Total_Nitrogen[i] = merged_data3$Hogs_total_N[i]/merged_data3$total_Nitogen_Hogs[i]
+         merged_data3$Turkey_Percentage_of_Total_Poop[i]= merged_data3$Turkey_total_poop_lb[i]/merged_data3$total_poop_Turkeys[i] 
+         merged_data3$Turkey_Percentage_of_Total_Nitrogen[i] = merged_data3$Turkey_total_N[i]/merged_data3$total_Nitogen_Turkeys[i]
+         merged_data3$Percentage_of_Ammonia[i] = merged_data3$`Ammonia 82 0.`[i]/merged_data3$total_Ammonia[i]
+         merged_data3$total_produced_nitrogen_percentage[i] = (merged_data3$Dairy_cows_total_N[i] +merged_data3$feed_cows_total_N[i]+ merged_data3$Hogs_total_N[i]  + merged_data3$Turkey_total_N[i] )/(merged_data3$total_Nitogen_Dairy_cows[i] + merged_data3$total_Nitogen_Feed_cows[i] + merged_data3$total_Nitogen_Hogs[i] + merged_data3$total_Nitogen_Turkeys[i])
+         
+         
+  
+  
+  # Check if value in col1 is NA
+  
+}
+```
+
+```{r}
+merged_data3|>
+  select(Year, Percentage_of_Ammonia)
+```
+
+
+```{r}
+```
+
+```{r}
+animalset3<- animalset2|>
+  group_by(County)|>
+  mutate(Produced_to_needed_amonia = (total_produced_nitrogen_percentage-Percentage_of_Ammonia))
+
+```
+
+
+```{r}
+animalset3|>
+  select(Year, County,Produced_to_needed_amonia, total_produced_nitrogen_percentage, Percentage_of_Ammonia, `Ammonia 82 0.`,  total_Ammonia )
+  
+  
+```
+```{r}
+  
+
+```
+
