@@ -1,0 +1,306 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+editor_options:
+  chunk_output_type: console
+---
+```{r echo = FALSE, output = FALSE, message = FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(sp)
+library(sf)
+library(tidyverse)
+library(ggspatial)
+```
+
+# Data
+
+```{r}
+crops <- read.csv("data/Crops.csv")
+crops <- crops %>% mutate(County = tolower(County))
+mn_counties <- sf::st_read("data/shp_bdry_counties_in_minnesota/mn_county_boundaries.shp")
+mn_counties <- mn_counties %>% mutate(CTY_NAME = tolower(CTY_NAME))
+
+crops_sf <- inner_join(crops, mn_counties, by = c("County" = "CTY_NAME"))
+crops_sf <- st_as_sf(crops_sf)
+write.csv(crops_sf, "data/crops_sf.csv")
+```
+
+```{r}
+fertilizer <- read.csv("data/FertilizerConsumption.csv")
+fertilizer <- fertilizer %>% mutate(County = tolower(County),
+                                    organic_use = Urea..46.0.0. + Ammonia..82.0.0.,
+                                    fabricated_use = Potash..0.0.60. + Monammonium.Phosphate..MAP...11.52.0. + Diammonium.Phosphate..DAP...18.46.0.,
+                                    aggregate_demand = organic_use + fabricated_use)
+
+fertilizer_sf <- inner_join(fertilizer, mn_counties, by = c("County" = "CTY_NAME"))
+
+fertilizer_sf <- st_as_sf(fertilizer_sf)
+write.csv(fertilizer_sf, "data/fertilizer_sf.csv")
+```
+
+```{r}
+animals <- read.csv("data/Animals.csv")
+animals <- animals %>% mutate(County.of.County_Animals = tolower(County.of.County_Animals))
+
+animals_sf <- inner_join(animals, mn_counties, by = c("County.of.County_Animals" = "CTY_NAME"))
+animals_sf <- st_as_sf(animals_sf)
+write.csv(animals_sf, "data/animals_sf.csv")
+```
+
+```{r}
+roads_sf <- sf::st_read("data/mn_roads_shp/tl_2019_27_prisecroads.shp")
+```
+
+
+# Maps
+
+
+## Crop Yield By Year
+
+
+### Corn Grain
+```{r}
+crops_sf %>% 
+  ggplot() +
+  geom_sf(aes(fill = `CORN..GRAIN...YIELD..MEASURED.IN.BU...ACRE`)) +
+  facet_wrap(~ Year) + 
+  labs(fill = "Bushels per Acre") + 
+  scale_fill_fermenter(palette = "Oranges", direction = 1) +
+  theme_void()
+```
+
+### Corn Sillage
+```{r}
+crops_sf %>% 
+  ggplot() +
+  geom_sf(aes(fill = `CORN..SILAGE...PRODUCTION..MEASURED.IN.TONS`)) +
+  facet_wrap(~ Year) + 
+  labs(fill = "Bushels per Acre") + 
+  scale_fill_fermenter(palette = "Oranges", direction = 1) +
+  theme_void()
+```
+
+### Soybeans
+```{r}
+crops_sf %>% 
+  ggplot() +
+  geom_sf(aes(fill = `SOYBEANS...YIELD..MEASURED.IN.BU...ACRE`)) +
+  facet_wrap(~ Year) + 
+  labs(fill = "Bushels per Acre") + 
+  scale_fill_fermenter(palette = "Oranges", direction = 1) +
+  theme_void()
+```
+
+### Sugar Beets
+```{r}
+crops_sf %>% 
+  ggplot() +
+  geom_sf(aes(fill = `SUGARBEETS...YIELD..MEASURED.IN.TONS...ACRE`)) +
+  facet_wrap(~ Year) + 
+  labs(title = "Sugarbeets Yield", fill = "Bushels per Acre") + 
+  scale_fill_fermenter(palette = "Oranges", direction = 1) +
+  theme_void()
+```
+
+## Crop Yield By Region
+
+### Corn Grain
+```{r}
+crops_sf %>% 
+  ggplot() +
+  geom_sf(aes(fill = `CORN..GRAIN...YIELD..MEASURED.IN.BU...ACRE`)) +
+  facet_wrap(~ Ag.District) + 
+  labs(fill = "Bushels per Acre") + 
+  scale_fill_fermenter(palette = "Oranges", direction = 1) +
+  theme_void()
+```
+
+### Corn Sillage
+```{r}
+crops_sf %>% 
+  ggplot() +
+  geom_sf(aes(fill = `CORN..SILAGE...YIELD..MEASURED.IN.TONS...ACRE`)) +
+  facet_wrap(~ Ag.District) + 
+  labs(fill = "Bushels per Acre") + 
+  scale_fill_fermenter(palette = "Oranges", direction = 1) +
+  theme_void()
+```
+
+### Soybeans
+```{r}
+crops_sf %>% 
+  ggplot() +
+  geom_sf(aes(fill = `SOYBEANS...YIELD..MEASURED.IN.BU...ACRE`)) +
+  facet_wrap(~ Ag.District) + 
+  labs(fill = "Bushels per Acre") + 
+  scale_fill_fermenter(palette = "Oranges", direction = 1) +
+  theme_void()
+```
+
+### Sugar Beets
+```{r}
+crops_sf %>% 
+  ggplot() +
+  geom_sf(aes(fill = `SUGARBEETS...YIELD..MEASURED.IN.TONS...ACRE`)) +
+  facet_wrap(~ Ag.District) + 
+  labs(fill = "Bushels per Acre") + 
+  scale_fill_fermenter(palette = "Oranges", direction = 1) +
+  theme_void()
+```
+
+## Fertilizer Use
+
+### Urea
+```{r}
+fertilizer_sf %>% 
+  ggplot() +
+  geom_sf(aes(fill = Urea..46.0.0.)) + 
+  facet_wrap(~ Year) +
+  labs(fill = "tons") + 
+  scale_fill_fermenter(palette = "Oranges", direction = 1) +
+  theme_void()
+```
+
+### Potash
+```{r}
+fertilizer_sf %>% 
+  ggplot() +
+  geom_sf(aes(fill = Potash..0.0.60.)) + 
+  facet_wrap(~ Year) +
+  labs(fill = "tons") + 
+  scale_fill_fermenter(palette = "Oranges", direction = 1) +
+  theme_void()
+```
+
+### MAP
+```{r}
+fertilizer_sf %>% 
+  ggplot() +
+  geom_sf(aes(fill = Monammonium.Phosphate..MAP...11.52.0.)) + 
+  facet_wrap(~ Year) +
+  labs(fill = "tons") + 
+  scale_fill_fermenter(palette = "Oranges", direction = 1) +
+  theme_void()
+```
+
+### DAP
+```{r}
+fertilizer_sf %>% 
+  ggplot() +
+  geom_sf(aes(fill = Diammonium.Phosphate..DAP...18.46.0.)) + 
+  facet_wrap(~ Year) +
+  labs(fill = "tons") + 
+  scale_fill_fermenter(palette = "Oranges", direction = 1) +
+  theme_void()
+```
+
+### Ammonia
+```{r}
+fertilizer_sf %>% 
+  ggplot() +
+  geom_sf(aes(fill = Ammonia..82.0.0.)) + 
+  facet_wrap(~ Year) +
+  labs(fill = "tons") + 
+  scale_fill_fermenter(palette = "Oranges", direction = 1) +
+  theme_void()
+```
+
+## Animals
+
+### Beef
+```{r}
+animals_sf %>% 
+  ggplot() + 
+  geom_sf(aes(fill = CATTLE..COWS..BEEF...INVENTORY)) +
+  facet_wrap(~ Year.of.County_Animals) +
+  scale_fill_fermenter(palette = "Oranges", direction = 1) +
+  theme_void() +
+  theme(legend.position = "none")
+```
+
+### Milk
+```{r}
+animals_sf %>% 
+  ggplot() + 
+  geom_sf(aes(fill = CATTLE..COWS..MILK...INVENTORY)) +
+  facet_wrap(~ Year.of.County_Animals) +
+  scale_fill_fermenter(palette = "Oranges", direction = 1) +
+  theme_void()
+```
+
+### Cattle Including Calves
+```{r}
+animals_sf %>% 
+  ggplot() + 
+  geom_sf(aes(fill = CATTLE..INCL.CALVES...INVENTORY)) +
+  facet_wrap(~ Year.of.County_Animals) +
+  scale_fill_fermenter(palette = "Oranges", direction = 1) +
+  theme_void()
+```
+
+### Feedlot Cattle
+```{r}
+animals_sf %>% 
+  ggplot() + 
+  geom_sf(aes(fill = CATTLE..ON.FEED...INVENTORY)) +
+  facet_wrap(~ Year.of.County_Animals) +
+  scale_fill_fermenter(palette = "Oranges", direction = 1) +
+  theme_void() 
+```
+
+### Hogs 
+```{r}
+animals_sf %>% 
+  ggplot() + 
+  geom_sf(aes(fill = HOGS...INVENTORY)) +
+  facet_wrap(~ Year.of.County_Animals) +
+  scale_fill_fermenter(palette = "Oranges", direction = 1) +
+  theme_void()
+```
+
+### Turkeys
+```{r}
+animals_sf %>% 
+  ggplot() + 
+  geom_sf(aes(fill = TURKEYS...INVENTORY)) +
+  facet_wrap(~ Year.of.County_Animals) +
+  scale_fill_fermenter(palette = "Oranges", direction = 1) +
+  theme_void()
+```
+
+# Primary Roads
+
+```{r}
+#primary_roads <- roads_sf %>% filter(RTTYP %in% c("I", "U")) # interstates and us highways
+primary_roads <- roads_sf %>% filter(MTFCC == "S1100") # primary roads
+primary_roads <- st_transform(primary_roads, st_crs(mn_counties))
+
+ggplot() + 
+  geom_sf(data = mn_counties) +
+  geom_sf(data = primary_roads, color = "red")
+  theme_void()
+```
+
+## Distance from each county to the nearest highway
+```{r}
+county_centroids <- st_centroid(mn_counties)
+distances <- st_distance(county_centroids, primary_roads)
+
+for (i in 1:nrow(county_centroids)) {
+  center_geom <- county_centroids$geometry[i]
+
+  # Assuming distances are already calculated (might have units)
+  min_distance_index <- which.min(distances[i, ])  # Find index of minimum distance
+  closest_highway_name <- primary_roads$FULLNAME[min_distance_index]  # Assuming "name" exists
+  
+    # Create a temporary data frame with new information
+  temp_df <- data.frame(min_distance_highway = distances[i, min_distance_index],
+                        closest_highway_name = closest_highway_name)
+  
+  # Update county_centroids with row-wise binding using rbind
+  county_centroids <- rbind(county_centroids[1:(i-1), ], temp_df, county_centroids[(i+1):nrow(county_centroids), ])
+  }
+```
+
+
