@@ -1,0 +1,94 @@
+---
+title: "3 and 6"
+author: "Mitchell Ardolf"
+date: "`r Sys.Date()`"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, include = F}
+library(tidyverse) 
+library(readr)
+library(sf)
+```
+
+```{r data load}
+AgDistricts <- read_csv("Mudac2024/Data/AgDistricts.csv")
+Animals <- read_csv("Mudac2024/Data/Animals.csv")
+CropProductivityIndex <- read_csv("Mudac2024/Data/CropProductivityIndex.csv")
+Crops <- read_csv("Mudac2024/Data/Crops.csv")
+FertilizerConsumption <- read_csv("Mudac2024/Data/FertilizerConsumption.csv")
+TillableLand <- read_csv("Mudac2024/Data/TillableLand.csv")
+
+counties_sf <- st_read("Mudac2024/Data/shp_bdry_counties_in_minnesota/mn_county_boundaries.shp")
+```
+
+
+```{r}
+Animals %>%
+  group_by(`Ag District`,
+            `Year of County_Animals`) %>%
+  summarise(mean = mean(`CATTLE, COWS, MILK - INVENTORY`, na.rm = T))%>%
+ggplot(
+       mapping = aes(x = `Year of County_Animals`,
+                     y = mean,
+                     color = `Ag District`)) +
+  geom_line()
+
+Animals %>%
+  group_by(`Ag District`,
+            `Year of County_Animals`) %>%
+  summarise(median = median(`CATTLE, COWS, MILK - INVENTORY`, na.rm = T))%>%
+ggplot(
+       mapping = aes(x = `Year of County_Animals`,
+                     y = median,
+                     color = `Ag District`)) +
+  geom_line()
+
+
+Animals %>%
+  group_by(`Ag District`,
+            `Year of County_Animals`) %>%
+  summarise(mean = mean(`TURKEYS - INVENTORY`, na.rm = T))%>%
+ggplot(
+       mapping = aes(x = `Year of County_Animals`,
+                     y = mean,
+                     color = `Ag District`)) +
+  geom_line()
+```
+
+
+```{r}
+data_big <- Crops %>%
+ # filter(Year == 2023) %>%
+  inner_join(Animals, by = join_by("County" == "County of County_Animals",
+                                   "Year" == "Year of County_Animals")) %>%
+  inner_join(TillableLand, by = join_by("County" == "County",
+                                   "Year" == "Year")) %>%
+  inner_join(FertilizerConsumption, by = join_by("County" == "County",
+                                   "Year" == "Year")) %>%
+  inner_join(CropProductivityIndex, by = join_by("County" == "County")) %>%
+  select(Year,
+         County,
+         `Ag District`,
+         `CATTLE, COWS, BEEF - INVENTORY`,
+         `CATTLE, COWS, MILK - INVENTORY`,
+         `CATTLE, ON FEED - INVENTORY`,
+         `HOGS - INVENTORY`,
+         `TURKEYS - INVENTORY`,
+         CPI,
+         `CORN, GRAIN - YIELD, MEASURED IN BU / ACRE`,
+         `CORN, SILAGE - YIELD, MEASURED IN TONS / ACRE`,
+         `SOYBEANS - YIELD, MEASURED IN BU / ACRE`,
+         `SUGARBEETS - YIELD, MEASURED IN TONS / ACRE`,
+         `Urea (46-0-0)`,
+         `Potash (0-0-60)`,
+         `Monammonium Phosphate (MAP) (11-52-0)`,
+         `Diammonium Phosphate (DAP) (18-46-0)`,
+         `Ammonia (82-0-0)`,
+         `Estimated Value Per Acre`)
+
+
+```
+
